@@ -1,0 +1,18 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [ eno1 ]
+      addresses: [192.168.1.205/24]
+      routes:
+        - to: default
+          via: 192.168.1.1
+    br25:
+      interfaces: [ vlan25 ]
+  vlans:
+    vlan25:
+      id: 25
+      link: eno1
