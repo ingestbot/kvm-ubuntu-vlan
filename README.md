@@ -257,6 +257,33 @@ See the repository [https://github.com/ingestbot/hashivirt](https://github.com/i
 
 ## Issues 
 
+### Shared Folder (Filesystem Passthrough) 
+
+Documentation on sharing data between host and guest is lacking. This [question on serverfault](https://serverfault.com/questions/178216/best-way-to-share-a-folder-between-kvm-host-and-guest) offers some initial
+leads. This shows how to use [virt-manager](https://virt-manager.org) to best accomplish this. 
+
+* virt-manager: shutdown and select VM -> `Show virtual hardware details` -> `Memory` -> `Enable shared memory` 
+* virt-manager: `Add hardware` -> `Filesystem` 
+ - `Driver: virtio-9p`
+ - `Source path: /path/foo/bar`
+ - `Target path: foobar`
+
+* Source path may require specific ownership and mode depending on your installation. Try `chown root.root /path/foo/bar; chmod 777 /path/foo/bar` initially.
+* On guest: `mount -t 9p foobar /mnt` 
+ - If `bad option; for several filesystems (e.g. nfs, cifs) you might need a /sbin/mount.<type> helper program.` verify/change owner and mode of Source path and verify Driver is `virtio-9p`
+ - If continued issues, verify 9p modules are present: `cat /proc/filesystems | grep 9p` should reflect `nodev 9p` and `lsmod | grep 9p` should list `9p, 9pnet_virtio, 9pnet`
+* To mount at boot, update `/etc/fstab`:
+ - `foobar /mnt 9p 0 0`
+ - It may be necessary to add the [9p modules to initramfs](https://superuser.com/questions/502205/libvirt-9p-kvm-mount-in-fstab-fails-to-mount-at-boot-time) (add `9p, 9pnet_virtio, 9pnet` to `/etc/initramfs-tools/modules` 
+and run `update-initramfs -u`
+
+
+See also:
+
+- https://www.linux-kvm.org/page/9p_virtio  
+- https://wiki.qemu.org/Documentation/9psetup
+
+
 ### NIC Adapter Reset / e1000e Issue 
 
 Significant modifications on network interfaces may bring some undesired results. Some have found that with heavy network traffic passing through the NIC, there are occasional interruptions in connectivity. If your experience this, check for something similar to the following:
