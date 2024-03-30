@@ -160,7 +160,7 @@ Verify removal and restart/check libvirtd
 ```
 
 Now create one or more bridges. Shown here, one is to be used without VLAN support, the other to be configured with VLAN 25 (optional). Use the 
-provided files `br0.xml` and `br25.xml`
+provided files `br0.xml` and `br25.xml` (see: [/examples](/examples).
 
 ```
 # virsh net-define br0.xml
@@ -253,7 +253,39 @@ Again, list the details of the storage pool and make note of the newly defined l
 
 ## And Beyond
 
+### Packer / Vagrant 
+
 See the repository [https://github.com/ingestbot/hashivirt](https://github.com/ingestbot/hashivirt) for details on using Hashicorp's Packer and Vagrant for box building and provisioning. 
+
+### Backing up and restoring a KVM image / VM
+
+```
+md /kvm_backup
+virsh shutdown <vm_name>
+```
+
+Find the storage pool path for `default`:
+
+```
+virsh pool-dumpxml default
+
+    <path>/kvm</path>
+```
+
+```
+cp /kvm/<vm_name>.img  /kvm
+virsh dumpxml <vm_name> > /kvm/<vm_name>.xml
+```
+
+To restore:
+
+```
+cp /kvm_backup/<vm_name>.img /kvm
+virsh define /kvm_backup/<vm_name>.xml
+virsh start <vm_name>
+```
+
+
 
 ## Issues 
 
@@ -315,7 +347,56 @@ If the `tcp-segmentation-offload` adjustment had positive impact, make permanent
 https://superuser.com/questions/1270723/how-to-fix-eth0-detected-hardware-unit-hang-in-debian-9
 https://serverfault.com/questions/616485/e1000e-reset-adapter-unexpectedly-detected-hardware-unit-hang
 
+### Docker
 
+The bridge(s) used for KVM may have difficulty reaching exposed ports on Docker containers when the container exists on the same host. See [networking-between-kvm-vm-and-docker-container-on-same-host](https://serverfault.com/questions/948339/networking-between-kvm-vm-and-docker-container-on-same-host) for details.
+
+A quick workaround / solution to this issue is including the bridge name in `/etc/docker/daemon.json`:
+
+```
+{
+  "bridge": "br25"
+}
+```
+
+### vagrant destroy
+
+```
+# vagrant destroy proxy001
+Name `proxy001` of domain about to create is already taken. Please try to run
+`vagrant up` command again.
+```
+
+https://github.com/vagrant-libvirt/vagrant-libvirt/issues/658
+
+```
+virsh list --all
+virsh destroy <THE_MACHINE>
+virsh undefine <THE_MACHINE> --snapshots-metadata --managed-save
+virsh vol-list default
+virsh vol-delete --pool default <THE_VOLUME>
+```
+
+### vagrant box remove
+
+```
+# vagrant box remove ubuntu_22.04.mini.22030504
+Removing box 'ubuntu_22.04.mini.22030504' (v0) with provider 'libvirt'...
+Vagrant-libvirt plugin removed box only from /usr/local/vagrant/vagrant.d/boxes directory
+From Libvirt storage pool you have to delete image manually(virsh, virt-manager or by any other tool)
+```
+
+```
+# virsh vol-list default
+ Name                                                                Path
+----------------------------------------------------------------------------------------------------------------------------------------------
+ubuntu_22.04.mini.22030504_vagrant_box_image_0_1683208390_box.img   /vbox/ubuntu_22.04.mini.22030504_vagrant_box_image_0_1683208390_box.img
+```
+
+```
+# virsh vol-delete /vbox/ubuntu_22.04.mini.22030504_vagrant_box_image_0_1683208390_box.img
+Vol /vbox/ubuntu_22.04.mini.22030504_vagrant_box_image_0_1683208390_box.img deleted
+```
 
 
 ## Resources
