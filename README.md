@@ -160,7 +160,7 @@ Verify removal and restart/check libvirtd
 ```
 
 Now create one or more bridges. Shown here, one is to be used without VLAN support, the other to be configured with VLAN 25 (optional). Use the 
-provided files `br0.xml` and `br25.xml` (see: [/examples](/examples).
+provided files `br0.xml` and `br25.xml` (see: [/examples](/examples)).
 
 ```
 # virsh net-define br0.xml
